@@ -42,20 +42,20 @@ export const Location = () => {
             <Button 
               text="Open in Google Maps" // Button text
               className="whitespace-nowrap"  // Prevent text wrapping
-              onClick={() => window.open("https://maps.app.goo.gl/wvFtJoAgtK7WeqCJA", "_blank")} // Opens Google Maps link in a new tab
+              onClick={() => window.open("https://maps.app.goo.gl/6owoEKBDBsom9u177", "_blank")} // Opens Google Maps link in a new tab
             />
           </div>
         </div>
               {/* Google Maps Iframe */}
         <div className="w-full flex justify-center">
           <div className="w-full max-w-4xl aspect-w-16 aspect-h-9 min-h-[60vh]">
-          <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7769.192755223559!2d77.62790484162652!3d13.187829798590867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1f007b9544c9%3A0xacf4397be1785789!2sLodha%20Sadahalli%20Bangalore%20-%20New%20Launch!5e0!3m2!1sen!2sin!4v1778569599101!5m2!1sen!2sin" 
+          <iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3884.5402703252985!2d77.631683!3d13.191360999999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMTPCsDExJzI4LjkiTiA3N8KwMzcnNTQuMSJF!5e0!3m2!1sen!2sin!4v1778576423924!5m2!1sen!2sin"
    className="w-full h-full"
               style={{ border: 0 }}
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-            ></iframe>
+            iframe/>
                  </div>
                      </div>
                      
