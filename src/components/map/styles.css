@@ -1,0 +1,11 @@
+.leaflet-popup-content-wrapper {
+    border-radius: 0px; /* Adjust the value as needed */
+    background-color: #2d2d2d !important; 
+    color: #f7f2ed !important;
+    border-radius: 0px  !important;
+}
+.leaflet-popup-tip {
+    background-color: #2d2d2d !important; 
+    border-radius: 0px;
+    border: none;
+}

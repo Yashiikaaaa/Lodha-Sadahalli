@@ -1,0 +1,36 @@
+{
+  "MZTxSQ8SCHs0zwF04pew": {
+      "subSource": "Google Search",
+      "projectName": "project-name",
+      "name": "Suhas",
+      "source": "Website",
+      "phonenumber": "919900845366",
+      "stage": "Unqualified",
+      "tag": "Basic",
+      "mode": "Online",
+      "currentAgent": "rahul@truestate.in",
+      "added": {
+        "date": "16/06/2024",
+        "time": "10:53 am"
+      },
+      "tasks": [
+        {
+          "taskName": "Collect Requirement",
+          "actionType": "Call",
+          "agent": "rahul@truestate.in",
+          "id": "1718962890701-2002", //genreate random from timestamp
+          "schedule": {
+            "date": "22/06/2024",     //one day after timestamp
+            "time": "01:00 pm"
+          },
+          "timestamp": {
+            "date": "21/06/2024",
+            "time": "01:00 pm"
+          },
+          "type": "Customer"
+        }
+      ],
+      "status": "Customer"
+  }
+}
+  
