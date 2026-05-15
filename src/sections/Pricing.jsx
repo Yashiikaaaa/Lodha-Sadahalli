@@ -32,7 +32,7 @@ const Pricing = ({ openContactModal, formSubmitted }) => {
       propertyType: PROPERTY_TYPES.sqft2400
     },
     {  
-      type: "4 BHK", 
+      type: "3.5 BHK", 
       price: "₹ 3.25 Cr ++", 
       size: "2,400 Sq.ft.", 
       image: bhk2,
@@ -40,8 +40,8 @@ const Pricing = ({ openContactModal, formSubmitted }) => {
       propertyType: PROPERTY_TYPES.sqft2400
     },
     { 
-      type: "5 BHK", 
-      price: "₹ 3.25 Cr ++", 
+      type: "4 BHK", 
+      price: "₹ 5.12 Cr ++", 
       size: "4,000 Sq.ft.", 
       image: bhk3,
       leadSource: LEAD_SOURCES.PRICING_sqft4000, // or appropriate lead source

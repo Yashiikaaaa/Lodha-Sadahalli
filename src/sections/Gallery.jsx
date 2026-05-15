@@ -7,12 +7,12 @@ import pic4 from '../assets/gallery/xyz1.jpg'
 import pic6 from '../assets/gallery/interior1.jpg'
 import pic9 from '../assets/gallery/31.jpg'
 import pic10 from '../assets/rs=w_1240,h_620,cg_true.webp'
-import pic12 from '../assets/gallery/header-image.webp'
-import pic13 from '../assets/home/embassy-edge.jpg'
-// import pic14 from '../assets/gallery/24.webp'
-// import pic15 from '../assets/gallery/25.webp'
-// import pic16 from '../assets/gallery/26.webp'
-// import pic7 from '../assets/gallery/7.png'
+// import pic12 from '../assets/gallery/header-image.webp'
+// import pic13 from '../assets/home/embassy-edge.jpg'
+import pic14 from '../assets/meta/Screenshot 2026-05-15 184443.png'
+import pic15 from '../assets/meta/Screenshot 2026-05-15 184459.png'
+import pic16 from '../assets/meta/Screenshot 2026-05-15 184508.png'
+import pic17 from '../assets/meta/Screenshot 2026-05-15 184525.png'
 // import pic8 from '../assets/gallery/8.png'
 // import pic9 from '../assets/gallery/9.png'
 // import pic10 from '../assets/gallery/10.png'
@@ -25,7 +25,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
 const tabs = [
-  { id: 1, title: 'EXTERIOR', photos: [ pic3,pic4,pic6,pic9,pic10,pic12,pic13] },
+  { id: 1, title: 'EXTERIOR', photos: [ pic17, pic16, pic15, pic14, pic3, pic4, pic6, pic9, pic10 ] },
 ];
 
 function NextArrow(props) {

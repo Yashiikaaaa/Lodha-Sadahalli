@@ -1,4 +1,4 @@
-import herobanner from "../assets/pune-category-section-desktop.png"; // Importing hero banner background image
+import herobanner from "../assets/meta/Screenshot 2026-05-15 184443.png"; // Importing hero banner background image
 import Button from "../components/button/buttonMain"; // Importing the Button component for reusability
 import homeLocation from "../assets/home/location.svg"; // Importing location icon
 import { useEffect, useState } from "react";
