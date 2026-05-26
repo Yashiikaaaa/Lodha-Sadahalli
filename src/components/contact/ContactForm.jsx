@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { FormAlert } from "./FormAlert";
-import ReactGA from "react-ga4"; // Google Analytics 4
-import { Phone, Xmark } from "iconoir-react"; // Icon library
-import overlaybg from "../../assets/gallery/14.webp"; // Background image
+import ReactGA from "react-ga4";
+import { Phone, Xmark } from "iconoir-react";
+import overlaybg from "../../assets/gallery/14.webp";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -17,6 +17,7 @@ if (trackingId) {
 
 const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
   const { trackFormSubmission } = useLeadTracking();
+
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [alert, setAlert] = useState(null);
@@ -24,11 +25,12 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
   const [utmParams, setUtmParams] = useState({});
   const [isMobile, setIsMobile] = useState(false);
 
-  // ✅ validate form memoized state
+  // Validate form
   const isFormValid = useMemo(() => {
     if (!name || !number) return false;
 
     const nameRegex = /^[A-Za-z ]+$/;
+
     if (!nameRegex.test(name)) return false;
 
     if (!isValidPhoneNumber(number)) return false;
@@ -36,12 +38,14 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
     return true;
   }, [name, number]);
 
-  // ✅ safely check window resize after mount
+  // Mobile check
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
+
     handleResize();
+
     window.addEventListener("resize", handleResize);
 
     return () => {
@@ -49,10 +53,12 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
     };
   }, []);
 
-  // ✅ safely extract UTM params
+  // Get UTM params
   function getUTMParams() {
     if (typeof window === "undefined") return {};
+
     const params = new URLSearchParams(window.location.search);
+
     return {
       utmSource: params.get("utmSource") || "",
       utmMedium: params.get("utmMedium") || "",
@@ -66,7 +72,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
     setUtmParams(getUTMParams());
   }, []);
 
-  // ✅ fixed validateForm
+  // Validate form fields
   const validateForm = () => {
     if (!name || !number) {
       setAlert(
@@ -75,10 +81,12 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
           onClose={() => setAlert(null)}
         />
       );
+
       return false;
     }
 
     const nameRegex = /^[A-Za-z ]+$/;
+
     if (!nameRegex.test(name)) {
       setAlert(
         <FormAlert
@@ -86,6 +94,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
           onClose={() => setAlert(null)}
         />
       );
+
       return false;
     }
 
@@ -96,16 +105,19 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
           onClose={() => setAlert(null)}
         />
       );
+
       return false;
     }
 
     return true;
   };
 
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (loading) return;
+
     setLoading(true);
 
     if (!validateForm()) {
@@ -113,6 +125,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
       return;
     }
 
+    // Track lead
     trackFormSubmission(
       leadSource?.source || LEAD_SOURCES.UNKNOWN,
       "contact_form",
@@ -120,16 +133,26 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
     );
 
     setAlert(
-      <FormAlert message="Submitting form..." onClose={() => setAlert(null)} />
+      <FormAlert
+        message="Submitting form..."
+        onClose={() => setAlert(null)}
+      />
     );
 
+    // Payload for CRM
     const payload = {
       name: name.trim().toLowerCase(),
       phoneNumber: number.trim(),
+
       campaign: true,
       projectId: "",
       projectName: "Lodha Sadahalli",
       currentAgent: "Unknown",
+
+      // Added fields
+      property_type: "primary",
+      lead_type: "demand",
+
       utmDetails: {
         source: utmParams.utmSource || null,
         medium: utmParams.utmMedium || null,
@@ -144,7 +167,9 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
         "https://google-campaign-leads-service-dot-iqol-crm.uc.r.appspot.com/handleMultipleCampaignData",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(payload),
         }
       );
@@ -154,8 +179,10 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
       }
 
       const result = await response.json();
+
       console.log("Success:", result);
 
+      // Reset fields
       setName("");
       setNumber("");
 
@@ -167,6 +194,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
       );
     } catch (error) {
       console.error("Error submitting form:", error);
+
       setAlert(
         <FormAlert
           message="Something went wrong. Please try again later."
@@ -180,7 +208,10 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
 
   return (
     <div>
+      {/* Overlay */}
       <div className="fixed inset-0 bg-black opacity-80 z-30"></div>
+
+      {/* Modal */}
       <div
         className={`fixed ${
           isMobile ? "" : "top-24"
@@ -190,18 +221,24 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
           className="max-w-7xl mx-auto flex gap-5 items-center justify-between border shadow-xl overflow-hidden"
           style={{ height: "75vh" }}
         >
+          {/* Left Image */}
           <img
             src={overlaybg}
             alt="background"
             className="hidden md:block w-full h-full"
           />
+
+          {/* Form Section */}
           <div className="mx-auto w-full gap-3 px-8 h-full flex flex-col items-center justify-center">
+            {/* Close Button */}
             <button
               className="text-3xl focus:outline-none float-end absolute top-2 right-2 bg-white w-fit"
               onClick={() => setContactModal(!contactmodal)}
             >
               <Xmark />
             </button>
+
+            {/* Heading */}
             <div
               className={`font-subheading font-semibold text-[28px] leading-[25px] text-center ${
                 isMobile ? "pt-4" : "pt-36"
@@ -209,6 +246,8 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
             >
               Want to know more? Enquire Now!
             </div>
+
+            {/* Name Input */}
             <div className="mx-auto max-w-sm pt-8 w-full">
               <input
                 type="text"
@@ -218,6 +257,8 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
+
+            {/* Phone Input */}
             <div className="mx-auto max-w-sm py-4 w-full">
               <PhoneInput
                 className="bg-transparent text-base focus:outline-none border border-gray-500 rounded-sm h-16 p-5"
@@ -227,25 +268,36 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
                 onChange={setNumber}
               />
             </div>
+
+            {/* Buttons */}
             <div className="flex flex-col items-center justify-between w-full">
+              {/* Submit Button */}
               <div className="mx-auto max-w-sm w-full">
                 <button
                   onClick={handleSubmit}
                   className={`text-white my-5 p-2 w-full ${
-                    loading || !isFormValid ? "bg-gray-400 cursor-not-allowed" : "bg-PrestigeBrown"
+                    loading || !isFormValid
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-PrestigeBrown"
                   }`}
                   disabled={loading || !isFormValid}
                 >
                   {loading ? "Submitting..." : "Submit"}
                 </button>
               </div>
+
+              {/* Divider */}
               <div className="flex w-full items-center justify-center gap-[10px]">
                 <div className="h-[2px] w-[86px] bg-[#D9D9D9]" />
+
                 <span className="font-sans font-normal text-[18px] leading-[24px] text-[#7E7E7E]">
                   Or
                 </span>
+
                 <div className="h-[2px] w-[86px] bg-[#D9D9D9]" />
               </div>
+
+              {/* Call Button */}
               <div className="mx-auto max-w-sm w-full">
                 <button className="text-white my-5 p-2 w-full bg-PrestigeBrown flex items-center justify-center hover:bg-opacity-90 transition">
                   <a href="tel:+919353329893" className="flex items-center">
@@ -257,6 +309,8 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
             </div>
           </div>
         </div>
+
+        {/* Alert */}
         {alert && <div>{alert}</div>}
       </div>
     </div>
