@@ -192,6 +192,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
           onClose={() => setAlert(null)}
         />
       );
+      setTimeout(() => setContactModal(false), 2000);
     } catch (error) {
       console.error("Error submitting form:", error);
 
