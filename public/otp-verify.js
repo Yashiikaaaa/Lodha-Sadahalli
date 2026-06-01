@@ -110,7 +110,7 @@ function ensureRecaptcha() {
 
 // ─── OTP Modal ────────────────────────────────────────────────────────────────
 
-function showOtpModal(phone) {
+function showOtpModal(phone, confirmFn) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = '__otp_overlay__';
@@ -127,33 +127,38 @@ function showOtpModal(phone) {
     `;
     document.body.appendChild(overlay);
 
-    const input   = overlay.querySelector('.__otp_input__');
-    const btn     = overlay.querySelector('.__otp_btn__');
-    const errEl   = overlay.querySelector('.__otp_err__');
-    const skip    = overlay.querySelector('.__otp_skip__');
+    const input = overlay.querySelector('.__otp_input__');
+    const btn   = overlay.querySelector('.__otp_btn__');
+    const errEl = overlay.querySelector('.__otp_err__');
+    const skip  = overlay.querySelector('.__otp_skip__');
 
     input.focus();
 
-    function showErr(msg) {
-      errEl.textContent = msg;
-      errEl.style.display = 'block';
+    function close() { document.body.removeChild(overlay); }
+
+    async function handleVerify() {
+      const otp = input.value.trim();
+      if (!otp) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      errEl.style.display = 'none';
+
+      try {
+        const token = await confirmFn(otp);
+        close();
+        resolve(token);
+      } catch {
+        btn.disabled = false;
+        btn.textContent = 'Verify';
+        errEl.textContent = 'Incorrect OTP, please try again.';
+        errEl.style.display = 'block';
+      }
     }
 
-    function close(token) {
-      document.body.removeChild(overlay);
-      resolve(token || null);
-    }
-
-    btn.addEventListener('click', () => resolve(input.value.trim()));
-    skip.addEventListener('click', () => close(null));
-
-    // Allow pressing Enter to confirm
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') resolve(input.value.trim());
-    });
-
-    overlay.resolve = resolve;
-    overlay.showErr = showErr;
+    btn.addEventListener('click', handleVerify);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleVerify(); });
+    skip.addEventListener('click', () => { close(); resolve(null); });
   });
 }
 
@@ -171,22 +176,13 @@ async function runOtpFlow(phone) {
     const verifier = ensureRecaptcha();
     const confirmation = await signInWithPhoneNumber(auth, e164, verifier);
 
-    // Show OTP modal and wait for user input
-    while (true) {
-      const otp = await showOtpModal(phone);
-      if (!otp) return null; // user skipped
+    const token = await showOtpModal(phone, async (otp) => {
+      const credential = await confirmation.confirm(otp);
+      return await credential.user.getIdToken();
+    });
 
-      try {
-        const credential = await confirmation.confirm(otp);
-        return await credential.user.getIdToken();
-      } catch (err) {
-        // Wrong OTP — show error and let user try again
-        const overlay = document.querySelector('.__otp_overlay__');
-        if (overlay?.showErr) overlay.showErr('Incorrect OTP, please try again.');
-      }
-    }
+    return token;
   } catch (err) {
-    // Reset reCAPTCHA on error so next attempt works
     if (recaptchaVerifier) {
       recaptchaVerifier.clear();
       recaptchaVerifier = null;
