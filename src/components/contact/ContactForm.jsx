@@ -178,14 +178,7 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
       // Reset fields
       setName("");
       setNumber("");
-
-      setAlert(
-        <FormAlert
-          message="We received your info. Expect a response soon!"
-          onClose={() => setAlert(null)}
-        />
-      );
-      setTimeout(() => setContactModal(false), 2000);
+      setContactModal(false);
     } catch (error) {
       console.error("Error submitting form:", error);
 

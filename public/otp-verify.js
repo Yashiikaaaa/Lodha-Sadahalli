@@ -144,7 +144,6 @@ function showOtpModal(phone, confirmFn, resendFn) {
           <div class="__otp_err__" style="display:none;"></div>
           <button class="__otp_btn__" style="background:${btnColor};">Verify</button>
           <div class="__otp_timer__">Resend OTP in 45s</div>
-          <button class="__otp_skip__">Skip verification</button>
         </div>
       </div>
     `;
@@ -154,7 +153,6 @@ function showOtpModal(phone, confirmFn, resendFn) {
     const btn        = wrap.querySelector('.__otp_btn__');
     const errEl      = wrap.querySelector('.__otp_err__');
     const timerEl    = wrap.querySelector('.__otp_timer__');
-    const skip       = wrap.querySelector('.__otp_skip__');
     const closeBtn   = wrap.querySelector('.__otp_close_btn__');
     const pencilBtn  = wrap.querySelector('.__otp_pencil_btn__');
 
@@ -227,7 +225,6 @@ function showOtpModal(phone, confirmFn, resendFn) {
 
     btn.addEventListener('click', handleVerify);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleVerify(); });
-    skip.addEventListener('click',   () => { close(); resolve(null); });
     closeBtn.addEventListener('click', () => { close(); resolve(null); });
     // Pencil — close OTP modal, contact form is revealed behind
     pencilBtn.addEventListener('click', () => { close(); resolve(null); });
@@ -288,25 +285,20 @@ if (cfg) {
     headers.set('Authorization', `Bearer ${cfg.authToken}`);
     headers.set('Content-Type', 'application/json');
 
-    // 1. Save lead IMMEDIATELY — dashboard shows it right away
-    const leadSavePromise = _fetch(input, { ...init, headers, body: JSON.stringify(body) });
+    // 1. Save lead immediately — React gets response right away, form closes
+    const response = await _fetch(input, { ...init, headers, body: JSON.stringify(body) });
 
-    // 2. Show OTP modal independently (lead is saving in background)
-    let otpToken = null;
-    if (body.phoneNumber) {
-      otpToken = await runOtpFlow(body.phoneNumber);
-    }
-
-    // 3. Await lead save
-    const response = await leadSavePromise;
-
-    // 4. If OTP verified, silently update phoneVerified on user doc
-    if (otpToken) {
-      _fetch(cfg.endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ ...body, otpToken }),
-      }).catch(() => {});
+    // 2. OTP runs completely independently AFTER lead saved — does NOT block form
+    if (body.phoneNumber && response.ok) {
+      runOtpFlow(body.phoneNumber).then(otpToken => {
+        if (otpToken) {
+          _fetch(cfg.endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ ...body, otpToken }),
+          }).catch(() => {});
+        }
+      });
     }
 
     return response;
