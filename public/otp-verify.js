@@ -98,12 +98,15 @@ let recaptchaVerifier = null;
 
 function ensureRecaptcha() {
   if (recaptchaVerifier) return recaptchaVerifier;
-  let container = document.getElementById('__otp_recaptcha__');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = '__otp_recaptcha__';
-    document.body.appendChild(container);
-  }
+
+  // Always remove old container and create fresh to avoid "already rendered" error
+  const old = document.getElementById('__otp_recaptcha__');
+  if (old) old.remove();
+
+  const container = document.createElement('div');
+  container.id = '__otp_recaptcha__';
+  document.body.appendChild(container);
+
   recaptchaVerifier = new RecaptchaVerifier(auth, '__otp_recaptcha__', { size: 'invisible' });
   return recaptchaVerifier;
 }
@@ -180,6 +183,12 @@ async function runOtpFlow(phone) {
       const credential = await confirmation.confirm(otp);
       return await credential.user.getIdToken();
     });
+
+    // Always clear reCAPTCHA after use so next submission gets a fresh one
+    if (recaptchaVerifier) {
+      recaptchaVerifier.clear();
+      recaptchaVerifier = null;
+    }
 
     return token;
   } catch (err) {
