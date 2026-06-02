@@ -89,10 +89,18 @@ style.textContent = `
   .__otp_btn__:disabled { opacity:0.5; cursor:not-allowed; }
   .__otp_timer__ { font-size:0.82rem; color:#888; text-align:center; }
   .__otp_timer__.active { color:#4f46e5; cursor:pointer; font-weight:500; }
-  .__otp_skip__ {
-    font-size:0.78rem; color:#aaa; cursor:pointer;
-    text-decoration:underline; background:none; border:none; padding:0;
+  .__otp_loading_wrap__ {
+    position:fixed; inset:0; background:rgba(0,0,0,0.8);
+    z-index:99998; display:flex; align-items:center; justify-content:center;
   }
+  .__otp_spinner__ {
+    width:44px; height:44px;
+    border:4px solid rgba(255,255,255,0.25);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:__otp_spin__ 0.8s linear infinite;
+  }
+  @keyframes __otp_spin__ { to { transform:rotate(360deg); } }
 `;
 document.head.appendChild(style);
 
@@ -113,6 +121,16 @@ function ensureRecaptcha() {
 
 function clearRecaptcha() {
   if (recaptchaVerifier) { recaptchaVerifier.clear(); recaptchaVerifier = null; }
+}
+
+// ─── Loading overlay ─────────────────────────────────────────────────────────
+
+function showLoadingOverlay() {
+  const el = document.createElement('div');
+  el.className = '__otp_loading_wrap__';
+  el.innerHTML = '<div class="__otp_spinner__"></div>';
+  document.body.appendChild(el);
+  return () => { if (el.parentNode) el.parentNode.removeChild(el); };
 }
 
 // ─── OTP Modal ────────────────────────────────────────────────────────────────
@@ -247,8 +265,11 @@ async function runOtpFlow(phone) {
     confirmation = await signInWithPhoneNumber(auth, e164, ensureRecaptcha());
   }
 
+  const hideLoading = showLoadingOverlay();
+
   try {
     await sendOtp();
+    hideLoading();
 
     const token = await showOtpModal(
       phone,
@@ -262,6 +283,7 @@ async function runOtpFlow(phone) {
     clearRecaptcha();
     return token;
   } catch (err) {
+    hideLoading();
     clearRecaptcha();
     console.warn('[otp-verify] Phone auth failed:', err.message);
     return null;
