@@ -24,7 +24,7 @@
 import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const cfg = window.__LEADS_CONFIG__;
 
@@ -49,46 +49,97 @@ if (cfg?.firebase) {
 
 const style = document.createElement('style');
 style.textContent = `
-  .__otp_overlay__ {
+  .__otp_dark_overlay__ {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    z-index: 99999;
+    background: rgba(0,0,0,0.8);
+    z-index: 99998;
+  }
+  .__otp_modal_wrap__ {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     display: flex; align-items: center; justify-content: center;
+    z-index: 99999;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
-  .__otp_box__ {
-    background: #fff; border-radius: 14px;
-    padding: 32px 28px; width: 320px; max-width: 90vw;
-    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  .__otp_modal_inner__ {
+    background: #fff;
+    width: 100%; max-width: 80rem;
+    height: 75vh;
+    display: flex; gap: 1.25rem;
+    align-items: center; justify-content: space-between;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+    margin: 0 auto;
   }
-  .__otp_box__ h3 {
-    margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #111;
+  .__otp_left_img__ {
+    display: none;
+    width: 100%; height: 100%;
+    object-fit: cover; flex-shrink: 0;
   }
-  .__otp_box__ p {
-    margin: 0 0 20px; font-size: 14px; color: #555;
+  @media (min-width: 768px) {
+    .__otp_left_img__ { display: block; }
+    .__otp_modal_wrap__ { top: 6rem; bottom: auto; align-items: flex-start; }
+    .__otp_modal_inner__ { margin: 0 auto; }
+  }
+  .__otp_right__ {
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 2rem;
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 1rem;
+    position: relative;
+  }
+  .__otp_close_btn__ {
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    background: #fff; border: none; font-size: 1.5rem;
+    cursor: pointer; line-height: 1; padding: 4px 8px;
+    color: #333;
+  }
+  .__otp_heading__ {
+    font-size: 1.5rem; font-weight: 600;
+    text-align: center; margin: 0;
+    color: #111; line-height: 1.3;
+  }
+  .__otp_sub__ {
+    font-size: 0.95rem; color: #555;
+    text-align: center; margin: 0;
   }
   .__otp_input__ {
-    width: 100%; box-sizing: border-box;
-    padding: 12px 14px; font-size: 20px; letter-spacing: 6px;
-    border: 2px solid #ddd; border-radius: 8px;
-    text-align: center; outline: none; transition: border 0.2s;
+    width: 100%; max-width: 20rem; box-sizing: border-box;
+    padding: 1rem; font-size: 1.5rem; letter-spacing: 0.5rem;
+    border: 1px solid #6b7280; border-radius: 2px;
+    text-align: center; outline: none;
+    transition: border-color 0.2s;
   }
-  .__otp_input__:focus { border-color: #4f46e5; }
+  .__otp_input__:focus { border-color: #111; }
+  .__otp_err__ {
+    color: #dc2626; font-size: 0.85rem;
+    margin: 0; text-align: center;
+  }
   .__otp_btn__ {
-    margin-top: 14px; width: 100%; padding: 12px;
-    background: #4f46e5; color: #fff; font-size: 15px; font-weight: 600;
-    border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s;
+    width: 100%; max-width: 20rem; padding: 0.6rem 1rem;
+    color: #fff; font-size: 1rem; font-weight: 600;
+    border: none; cursor: pointer;
+    transition: opacity 0.2s;
   }
-  .__otp_btn__:hover  { background: #4338ca; }
-  .__otp_btn__:disabled { background: #a5b4fc; cursor: not-allowed; }
+  .__otp_btn__:disabled { opacity: 0.5; cursor: not-allowed; }
+  .__otp_resend__ {
+    font-size: 0.85rem; color: #555;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .__otp_resend_divider__ {
+    height: 2px; width: 5.375rem; background: #D9D9D9;
+  }
+  .__otp_resend_span__ {
+    cursor: pointer; font-weight: 500;
+  }
   .__otp_skip__ {
-    display: block; margin-top: 12px; font-size: 13px;
-    color: #888; cursor: pointer; text-decoration: underline;
-    background: none; border: none;
+    font-size: 0.8rem; color: #888;
+    cursor: pointer; text-decoration: underline;
+    background: none; border: none; padding: 0;
   }
-  .__otp_err__  { color: #dc2626; font-size: 13px; margin-top: 8px; }
-  .__otp_resend__ { font-size: 13px; margin-top: 10px; color: #555; }
-  .__otp_resend__ span { color: #4f46e5; cursor: pointer; font-weight: 500; }
 `;
 document.head.appendChild(style);
 
@@ -99,7 +150,6 @@ let recaptchaVerifier = null;
 function ensureRecaptcha() {
   if (recaptchaVerifier) return recaptchaVerifier;
 
-  // Always remove old container and create fresh to avoid "already rendered" error
   const old = document.getElementById('__otp_recaptcha__');
   if (old) old.remove();
 
@@ -115,29 +165,54 @@ function ensureRecaptcha() {
 
 function showOtpModal(phone, confirmFn) {
   return new Promise((resolve) => {
-    const overlay = document.createElement('div');
-    overlay.className = '__otp_overlay__';
-    overlay.innerHTML = `
-      <div class="__otp_box__">
-        <h3>Verify Your Number</h3>
-        <p>Enter the 6-digit OTP sent to<br><strong>${phone}</strong></p>
-        <input class="__otp_input__" type="tel" maxlength="6" placeholder="------" autocomplete="one-time-code" />
-        <div class="__otp_err__" style="display:none"></div>
-        <button class="__otp_btn__">Verify</button>
-        <div class="__otp_resend__">Didn't receive? <span>Resend OTP</span></div>
-        <button class="__otp_skip__">Skip verification</button>
+
+    // Grab image src and button color from the open contact form
+    const formImg = document.querySelector('img[src*="assets"]');
+    const imgSrc  = formImg?.src || '';
+    const formBtn = document.querySelector('.bg-PrestigeBrown, button[class*="PrestigeBrown"]');
+    const btnColor = formBtn ? getComputedStyle(formBtn).backgroundColor : '#8B6914';
+
+    // Dark overlay
+    const darkOverlay = document.createElement('div');
+    darkOverlay.className = '__otp_dark_overlay__';
+    document.body.appendChild(darkOverlay);
+
+    // Modal wrapper
+    const wrap = document.createElement('div');
+    wrap.className = '__otp_modal_wrap__';
+    wrap.innerHTML = `
+      <div class="__otp_modal_inner__">
+        ${imgSrc ? `<img class="__otp_left_img__" src="${imgSrc}" alt="" />` : ''}
+        <div class="__otp_right__">
+          <button class="__otp_close_btn__">&#10005;</button>
+          <div class="__otp_heading__">Verify Your Number</div>
+          <p class="__otp_sub__">Enter the 6-digit OTP sent to<br><strong>${phone}</strong></p>
+          <input class="__otp_input__" type="tel" maxlength="6" placeholder="------" autocomplete="one-time-code" />
+          <div class="__otp_err__" style="display:none;"></div>
+          <button class="__otp_btn__" style="background:${btnColor};">Verify</button>
+          <div class="__otp_resend__">
+            <div class="__otp_resend_divider__"></div>
+            <span class="__otp_resend_span__">Resend OTP</span>
+            <div class="__otp_resend_divider__"></div>
+          </div>
+          <button class="__otp_skip__">Skip verification</button>
+        </div>
       </div>
     `;
-    document.body.appendChild(overlay);
+    document.body.appendChild(wrap);
 
-    const input = overlay.querySelector('.__otp_input__');
-    const btn   = overlay.querySelector('.__otp_btn__');
-    const errEl = overlay.querySelector('.__otp_err__');
-    const skip  = overlay.querySelector('.__otp_skip__');
+    const input     = wrap.querySelector('.__otp_input__');
+    const btn       = wrap.querySelector('.__otp_btn__');
+    const errEl     = wrap.querySelector('.__otp_err__');
+    const skip      = wrap.querySelector('.__otp_skip__');
+    const closeBtn  = wrap.querySelector('.__otp_close_btn__');
 
     input.focus();
 
-    function close() { document.body.removeChild(overlay); }
+    function close() {
+      document.body.removeChild(wrap);
+      document.body.removeChild(darkOverlay);
+    }
 
     async function handleVerify() {
       const otp = input.value.trim();
@@ -160,8 +235,9 @@ function showOtpModal(phone, confirmFn) {
     }
 
     btn.addEventListener('click', handleVerify);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleVerify(); });
+    closeBtn.addEventListener('click', () => { close(); resolve(null); });
     skip.addEventListener('click', () => { close(); resolve(null); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleVerify(); });
   });
 }
 
@@ -170,7 +246,6 @@ function showOtpModal(phone, confirmFn) {
 async function runOtpFlow(phone) {
   if (!auth) return null;
 
-  // Normalise phone to E.164 (+91XXXXXXXXXX for India)
   let e164 = phone.replace(/\D/g, '');
   if (e164.length === 10) e164 = '+91' + e164;
   else if (!e164.startsWith('+')) e164 = '+' + e164;
@@ -184,7 +259,6 @@ async function runOtpFlow(phone) {
       return await credential.user.getIdToken();
     });
 
-    // Always clear reCAPTCHA after use so next submission gets a fresh one
     if (recaptchaVerifier) {
       recaptchaVerifier.clear();
       recaptchaVerifier = null;
@@ -209,24 +283,20 @@ if (cfg) {
   window.fetch = async function (input, init = {}) {
     const url = typeof input === 'string' ? input : input?.url;
 
-    // Only intercept POST calls to the leads endpoint
     const isLeadCall = url && url.includes(cfg.endpoint) && (init.method || 'GET').toUpperCase() === 'POST';
 
     if (!isLeadCall) return _fetch(input, init);
 
-    // Parse existing body
     let body = {};
     try {
       body = JSON.parse(init.body || '{}');
     } catch (_) {}
 
-    // Run OTP flow if phone is present and no otpToken already set
     if (body.phoneNumber && !body.otpToken) {
       const token = await runOtpFlow(body.phoneNumber);
       if (token) body.otpToken = token;
     }
 
-    // Always inject Authorization header
     const headers = new Headers(init.headers || {});
     headers.set('Authorization', `Bearer ${cfg.authToken}`);
     headers.set('Content-Type', 'application/json');
