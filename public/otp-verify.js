@@ -170,6 +170,10 @@ function showOtpModal(phone, confirmFn) {
     const formBtn = document.querySelector('.bg-PrestigeBrown, button[class*="PrestigeBrown"]');
     const btnColor = formBtn ? getComputedStyle(formBtn).backgroundColor : '#8B6914';
 
+    // Close the contact form immediately when OTP modal opens
+    const formCloseBtn = document.querySelector('[class*="z-40"] button[class*="absolute"], [class*="z-40"] button[class*="top-2"]');
+    if (formCloseBtn) formCloseBtn.click();
+
     // Dark overlay
     const darkOverlay = document.createElement('div');
     darkOverlay.className = '__otp_dark_overlay__';
