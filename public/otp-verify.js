@@ -62,10 +62,10 @@ style.textContent = `
   }
   .__otp_modal_inner__ {
     background: #fff;
-    width: 100%; max-width: 80rem;
-    height: 75vh;
-    display: flex; gap: 1.25rem;
-    align-items: center; justify-content: space-between;
+    width: 100%; max-width: 56rem;
+    height: 60vh;
+    display: flex; gap: 0;
+    align-items: stretch; justify-content: space-between;
     border: 1px solid #e5e7eb;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     overflow: hidden;
@@ -78,16 +78,15 @@ style.textContent = `
   }
   @media (min-width: 768px) {
     .__otp_left_img__ { display: block; }
-    .__otp_modal_wrap__ { top: 6rem; bottom: auto; align-items: flex-start; }
-    .__otp_modal_inner__ { margin: 0 auto; }
+    .__otp_modal_wrap__ { top: 0; align-items: center; }
   }
   .__otp_right__ {
     flex: 1;
-    padding: 0 2rem;
+    padding: 0 1.5rem;
     height: 100%;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    gap: 1rem;
+    gap: 0.75rem;
     position: relative;
   }
   .__otp_close_btn__ {
