@@ -73,8 +73,8 @@ style.textContent = `
   }
   .__otp_left_img__ {
     display: none;
-    width: 100%; height: 100%;
-    object-fit: cover; flex-shrink: 0;
+    width: 50%; height: 100%;
+    object-fit: cover; flex: 1; flex-shrink: 0;
   }
   @media (min-width: 768px) {
     .__otp_left_img__ { display: block; }
@@ -82,8 +82,7 @@ style.textContent = `
     .__otp_modal_inner__ { margin: 0 auto; }
   }
   .__otp_right__ {
-    margin: 0 auto;
-    width: 100%;
+    flex: 1;
     padding: 0 2rem;
     height: 100%;
     display: flex; flex-direction: column;
