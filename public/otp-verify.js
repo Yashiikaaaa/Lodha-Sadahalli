@@ -135,12 +135,8 @@ function showLoadingOverlay() {
 
 // ─── OTP Modal ────────────────────────────────────────────────────────────────
 
-function showOtpModal(phone, confirmFn, resendFn) {
+function showOtpModal(phone, imgSrc, btnColor, confirmFn, resendFn) {
   return new Promise((resolve) => {
-    const formImg = document.querySelector('img[src*="assets"]');
-    const imgSrc  = formImg?.src || '';
-    const formBtn = document.querySelector('.bg-PrestigeBrown, button[class*="PrestigeBrown"]');
-    const btnColor = formBtn ? getComputedStyle(formBtn).backgroundColor : '#8B6914';
 
     const darkOverlay = document.createElement('div');
     darkOverlay.className = '__otp_dark_overlay__';
@@ -251,7 +247,7 @@ function showOtpModal(phone, confirmFn, resendFn) {
 
 // ─── Core OTP flow ────────────────────────────────────────────────────────────
 
-async function runOtpFlow(phone) {
+async function runOtpFlow(phone, imgSrc, btnColor) {
   if (!auth) return null;
 
   let e164 = phone.replace(/\D/g, '');
@@ -272,12 +268,12 @@ async function runOtpFlow(phone) {
     hideLoading();
 
     const token = await showOtpModal(
-      phone,
+      phone, imgSrc, btnColor,
       async (otp) => {
         const cred = await confirmation.confirm(otp);
         return await cred.user.getIdToken();
       },
-      async () => { await sendOtp(); }
+      async () => { await sendOtp(); }  // resendFn
     );
 
     clearRecaptcha();
@@ -307,12 +303,18 @@ if (cfg) {
     headers.set('Authorization', `Bearer ${cfg.authToken}`);
     headers.set('Content-Type', 'application/json');
 
+    // Capture image & button color NOW while form is still open
+    const formImg = document.querySelector('img[src*="assets"]');
+    const capturedImg = formImg?.src || '';
+    const formBtn = document.querySelector('.bg-PrestigeBrown, button[class*="PrestigeBrown"]');
+    const capturedColor = formBtn ? getComputedStyle(formBtn).backgroundColor : '#8B6914';
+
     // 1. Save lead immediately — React gets response right away, form closes
     const response = await _fetch(input, { ...init, headers, body: JSON.stringify(body) });
 
     // 2. OTP runs completely independently AFTER lead saved — does NOT block form
     if (body.phoneNumber && response.ok) {
-      runOtpFlow(body.phoneNumber).then(otpToken => {
+      runOtpFlow(body.phoneNumber, capturedImg, capturedColor).then(otpToken => {
         if (otpToken) {
           _fetch(cfg.endpoint, {
             method: 'POST',
