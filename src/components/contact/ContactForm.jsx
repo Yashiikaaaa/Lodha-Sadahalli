@@ -132,13 +132,6 @@ const ContactForm = ({ contactmodal, setContactModal, leadSource }) => {
       leadSource?.propertyType
     );
 
-    setAlert(
-      <FormAlert
-        message="Submitting form..."
-        onClose={() => setAlert(null)}
-      />
-    );
-
     // Payload for CRM
     const payload = {
       name: name.trim().toLowerCase(),

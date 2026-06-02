@@ -1,41 +1,26 @@
 /**
- * otp-verify.js
- *
- * Drop-in OTP verification for campaign lead forms.
- * Intercepts fetch calls to the leads endpoint, runs Firebase phone auth,
- * and injects otpToken + Authorization header automatically.
+ * otp-verify.js — Drop-in OTP verification for campaign lead forms.
  *
  * Setup in index.html (before this script):
- *
  *   <script>
  *     window.__LEADS_CONFIG__ = {
- *       endpoint:    'https://your-leads-server.com/handleMultipleCampaignData',
- *       authToken:   'your-SERVER_AUTH_TOKEN',
- *       firebase: {
- *         apiKey:    'iqol-crm-web-api-key',
- *         authDomain:'iqol-crm.firebaseapp.com',
- *         projectId: 'iqol-crm',
- *       }
+ *       endpoint:  'https://your-server.com/handleMultipleCampaignData',
+ *       authToken: 'your-SERVER_AUTH_TOKEN',
+ *       firebase: { apiKey: '...', authDomain: 'iqol-crm.firebaseapp.com', projectId: 'iqol-crm' }
  *     };
  *   </script>
- *   <script type="module" src="/otp-verify.js"></script>
+ *   <script type="module" src="/otp-verify.js?v=3"></script>
  */
 
-import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
 const cfg = window.__LEADS_CONFIG__;
-
 if (!cfg || !cfg.endpoint || !cfg.authToken || !cfg.firebase) {
-  console.warn('[otp-verify] window.__LEADS_CONFIG__ is missing or incomplete. OTP verification disabled.');
+  console.warn('[otp-verify] __LEADS_CONFIG__ missing or incomplete.');
 }
 
-// ─── Firebase init ────────────────────────────────────────────────────────────
-
 let auth = null;
-
 if (cfg?.firebase) {
   try {
     const app = initializeApp(cfg.firebase, 'otp-verify');
@@ -50,136 +35,99 @@ if (cfg?.firebase) {
 const style = document.createElement('style');
 style.textContent = `
   .__otp_dark_overlay__ {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.8);
-    z-index: 99998;
+    position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99998;
   }
   .__otp_modal_wrap__ {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 99999;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    z-index:99999; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   }
   .__otp_modal_inner__ {
-    background: #fff;
-    width: 100%; max-width: 56rem;
-    height: 60vh;
-    display: flex; gap: 0;
-    align-items: stretch; justify-content: space-between;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    overflow: hidden;
-    margin: 0 auto;
+    background:#fff; width:100%; max-width:54rem; height:58vh;
+    display:flex; gap:0; align-items:stretch;
+    border:1px solid #e5e7eb; box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    overflow:hidden; margin:0 1rem;
   }
   .__otp_left_img__ {
-    display: none;
-    width: 50%; height: 100%;
-    object-fit: cover; flex: 1; flex-shrink: 0;
+    display:none; flex:1; object-fit:cover;
   }
-  @media (min-width: 768px) {
-    .__otp_left_img__ { display: block; }
-    .__otp_modal_wrap__ { top: 0; align-items: center; }
-  }
+  @media(min-width:768px){ .__otp_left_img__{ display:block; } }
   .__otp_right__ {
-    flex: 1;
-    padding: 0 1.5rem;
-    height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 0.75rem;
-    position: relative;
+    flex:1; padding:0 2rem; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:0.75rem; position:relative;
   }
   .__otp_close_btn__ {
-    position: absolute; top: 0.5rem; right: 0.5rem;
-    background: #fff; border: none; font-size: 1.5rem;
-    cursor: pointer; line-height: 1; padding: 4px 8px;
-    color: #333;
+    position:absolute; top:0.5rem; right:0.5rem;
+    background:#fff; border:none; font-size:1.4rem;
+    cursor:pointer; color:#333; padding:4px 8px; line-height:1;
   }
   .__otp_heading__ {
-    font-size: 1.5rem; font-weight: 600;
-    text-align: center; margin: 0;
-    color: #111; line-height: 1.3;
+    font-size:1.4rem; font-weight:600; text-align:center; margin:0; color:#111;
   }
   .__otp_sub__ {
-    font-size: 0.95rem; color: #555;
-    text-align: center; margin: 0;
+    font-size:0.9rem; color:#555; text-align:center; margin:0;
+    display:flex; align-items:center; justify-content:center; gap:0.4rem; flex-wrap:wrap;
   }
+  .__otp_pencil_btn__ {
+    background:none; border:none; cursor:pointer; font-size:0.85rem;
+    color:#555; padding:2px 4px; line-height:1;
+  }
+  .__otp_pencil_btn__:hover { color:#111; }
   .__otp_input__ {
-    width: 100%; max-width: 20rem; box-sizing: border-box;
-    padding: 1rem; font-size: 1.5rem; letter-spacing: 0.5rem;
-    border: 1px solid #6b7280; border-radius: 2px;
-    text-align: center; outline: none;
-    transition: border-color 0.2s;
+    width:100%; max-width:18rem; box-sizing:border-box;
+    padding:0.9rem; font-size:1.5rem; letter-spacing:0.5rem;
+    border:1px solid #6b7280; border-radius:2px;
+    text-align:center; outline:none; transition:border-color 0.2s;
   }
-  .__otp_input__:focus { border-color: #111; }
-  .__otp_err__ {
-    color: #dc2626; font-size: 0.85rem;
-    margin: 0; text-align: center;
-  }
+  .__otp_input__:focus { border-color:#111; }
+  .__otp_err__ { color:#dc2626; font-size:0.82rem; margin:0; text-align:center; }
   .__otp_btn__ {
-    width: 100%; max-width: 20rem; padding: 0.6rem 1rem;
-    color: #fff; font-size: 1rem; font-weight: 600;
-    border: none; cursor: pointer;
-    transition: opacity 0.2s;
+    width:100%; max-width:18rem; padding:0.6rem 1rem;
+    color:#fff; font-size:1rem; font-weight:600;
+    border:none; cursor:pointer; transition:opacity 0.2s;
   }
-  .__otp_btn__:disabled { opacity: 0.5; cursor: not-allowed; }
-  .__otp_resend__ {
-    font-size: 0.85rem; color: #555;
-    display: flex; align-items: center; gap: 0.5rem;
-  }
-  .__otp_resend_divider__ {
-    height: 2px; width: 5.375rem; background: #D9D9D9;
-  }
-  .__otp_resend_span__ {
-    cursor: pointer; font-weight: 500;
-  }
+  .__otp_btn__:disabled { opacity:0.5; cursor:not-allowed; }
+  .__otp_timer__ { font-size:0.82rem; color:#888; text-align:center; }
+  .__otp_timer__.active { color:#4f46e5; cursor:pointer; font-weight:500; }
   .__otp_skip__ {
-    font-size: 0.8rem; color: #888;
-    cursor: pointer; text-decoration: underline;
-    background: none; border: none; padding: 0;
+    font-size:0.78rem; color:#aaa; cursor:pointer;
+    text-decoration:underline; background:none; border:none; padding:0;
   }
 `;
 document.head.appendChild(style);
 
-// ─── reCAPTCHA (invisible) ────────────────────────────────────────────────────
+// ─── reCAPTCHA ────────────────────────────────────────────────────────────────
 
 let recaptchaVerifier = null;
 
 function ensureRecaptcha() {
   if (recaptchaVerifier) return recaptchaVerifier;
-
   const old = document.getElementById('__otp_recaptcha__');
   if (old) old.remove();
-
-  const container = document.createElement('div');
-  container.id = '__otp_recaptcha__';
-  document.body.appendChild(container);
-
+  const el = document.createElement('div');
+  el.id = '__otp_recaptcha__';
+  document.body.appendChild(el);
   recaptchaVerifier = new RecaptchaVerifier(auth, '__otp_recaptcha__', { size: 'invisible' });
   return recaptchaVerifier;
 }
 
+function clearRecaptcha() {
+  if (recaptchaVerifier) { recaptchaVerifier.clear(); recaptchaVerifier = null; }
+}
+
 // ─── OTP Modal ────────────────────────────────────────────────────────────────
 
-function showOtpModal(phone, confirmFn) {
+function showOtpModal(phone, confirmFn, resendFn) {
   return new Promise((resolve) => {
-
-    // Grab image src and button color from the open contact form
     const formImg = document.querySelector('img[src*="assets"]');
     const imgSrc  = formImg?.src || '';
     const formBtn = document.querySelector('.bg-PrestigeBrown, button[class*="PrestigeBrown"]');
     const btnColor = formBtn ? getComputedStyle(formBtn).backgroundColor : '#8B6914';
 
-    // Close the contact form immediately when OTP modal opens
-    const formCloseBtn = document.querySelector('[class*="z-40"] button[class*="absolute"], [class*="z-40"] button[class*="top-2"]');
-    if (formCloseBtn) formCloseBtn.click();
-
-    // Dark overlay
     const darkOverlay = document.createElement('div');
     darkOverlay.className = '__otp_dark_overlay__';
     document.body.appendChild(darkOverlay);
 
-    // Modal wrapper
     const wrap = document.createElement('div');
     wrap.className = '__otp_modal_wrap__';
     wrap.innerHTML = `
@@ -188,42 +136,83 @@ function showOtpModal(phone, confirmFn) {
         <div class="__otp_right__">
           <button class="__otp_close_btn__">&#10005;</button>
           <div class="__otp_heading__">Verify Your Number</div>
-          <p class="__otp_sub__">Enter the 6-digit OTP sent to<br><strong>${phone}</strong></p>
+          <p class="__otp_sub__">
+            OTP sent to <strong>${phone}</strong>
+            <button class="__otp_pencil_btn__" title="Edit phone number">&#9998;</button>
+          </p>
           <input class="__otp_input__" type="tel" maxlength="6" placeholder="------" autocomplete="one-time-code" />
           <div class="__otp_err__" style="display:none;"></div>
           <button class="__otp_btn__" style="background:${btnColor};">Verify</button>
-          <div class="__otp_resend__">
-            <div class="__otp_resend_divider__"></div>
-            <span class="__otp_resend_span__">Resend OTP</span>
-            <div class="__otp_resend_divider__"></div>
-          </div>
+          <div class="__otp_timer__">Resend OTP in 45s</div>
           <button class="__otp_skip__">Skip verification</button>
         </div>
       </div>
     `;
     document.body.appendChild(wrap);
 
-    const input     = wrap.querySelector('.__otp_input__');
-    const btn       = wrap.querySelector('.__otp_btn__');
-    const errEl     = wrap.querySelector('.__otp_err__');
-    const skip      = wrap.querySelector('.__otp_skip__');
-    const closeBtn  = wrap.querySelector('.__otp_close_btn__');
+    const input      = wrap.querySelector('.__otp_input__');
+    const btn        = wrap.querySelector('.__otp_btn__');
+    const errEl      = wrap.querySelector('.__otp_err__');
+    const timerEl    = wrap.querySelector('.__otp_timer__');
+    const skip       = wrap.querySelector('.__otp_skip__');
+    const closeBtn   = wrap.querySelector('.__otp_close_btn__');
+    const pencilBtn  = wrap.querySelector('.__otp_pencil_btn__');
 
     input.focus();
 
+    // ── Resend timer ──
+    let timerSecs = 45;
+    let timerInterval = setInterval(() => {
+      timerSecs--;
+      if (timerSecs <= 0) {
+        clearInterval(timerInterval);
+        timerEl.textContent = 'Resend OTP';
+        timerEl.classList.add('active');
+      } else {
+        timerEl.textContent = `Resend OTP in ${timerSecs}s`;
+      }
+    }, 1000);
+
+    timerEl.addEventListener('click', async () => {
+      if (!timerEl.classList.contains('active')) return;
+      timerEl.textContent = 'Sending...';
+      timerEl.classList.remove('active');
+      try {
+        await resendFn();
+        timerSecs = 45;
+        timerEl.textContent = `Resend OTP in ${timerSecs}s`;
+        timerInterval = setInterval(() => {
+          timerSecs--;
+          if (timerSecs <= 0) {
+            clearInterval(timerInterval);
+            timerEl.textContent = 'Resend OTP';
+            timerEl.classList.add('active');
+          } else {
+            timerEl.textContent = `Resend OTP in ${timerSecs}s`;
+          }
+        }, 1000);
+        input.value = '';
+        input.focus();
+      } catch {
+        timerEl.textContent = 'Failed. Try again.';
+        timerEl.classList.add('active');
+      }
+    });
+
+    // ── Close / cleanup ──
     function close() {
+      clearInterval(timerInterval);
       document.body.removeChild(wrap);
       document.body.removeChild(darkOverlay);
     }
 
+    // ── Verify ──
     async function handleVerify() {
       const otp = input.value.trim();
       if (!otp) return;
-
       btn.disabled = true;
       btn.textContent = 'Verifying...';
       errEl.style.display = 'none';
-
       try {
         const token = await confirmFn(otp);
         close();
@@ -237,9 +226,11 @@ function showOtpModal(phone, confirmFn) {
     }
 
     btn.addEventListener('click', handleVerify);
-    closeBtn.addEventListener('click', () => { close(); resolve(null); });
-    skip.addEventListener('click', () => { close(); resolve(null); });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleVerify(); });
+    skip.addEventListener('click',   () => { close(); resolve(null); });
+    closeBtn.addEventListener('click', () => { close(); resolve(null); });
+    // Pencil — close OTP modal, contact form is revealed behind
+    pencilBtn.addEventListener('click', () => { close(); resolve(null); });
   });
 }
 
@@ -252,26 +243,29 @@ async function runOtpFlow(phone) {
   if (e164.length === 10) e164 = '+91' + e164;
   else if (!e164.startsWith('+')) e164 = '+' + e164;
 
+  let confirmation = null;
+
+  async function sendOtp() {
+    clearRecaptcha();
+    confirmation = await signInWithPhoneNumber(auth, e164, ensureRecaptcha());
+  }
+
   try {
-    const verifier = ensureRecaptcha();
-    const confirmation = await signInWithPhoneNumber(auth, e164, verifier);
+    await sendOtp();
 
-    const token = await showOtpModal(phone, async (otp) => {
-      const credential = await confirmation.confirm(otp);
-      return await credential.user.getIdToken();
-    });
+    const token = await showOtpModal(
+      phone,
+      async (otp) => {
+        const cred = await confirmation.confirm(otp);
+        return await cred.user.getIdToken();
+      },
+      async () => { await sendOtp(); }
+    );
 
-    if (recaptchaVerifier) {
-      recaptchaVerifier.clear();
-      recaptchaVerifier = null;
-    }
-
+    clearRecaptcha();
     return token;
   } catch (err) {
-    if (recaptchaVerifier) {
-      recaptchaVerifier.clear();
-      recaptchaVerifier = null;
-    }
+    clearRecaptcha();
     console.warn('[otp-verify] Phone auth failed:', err.message);
     return null;
   }
@@ -284,29 +278,37 @@ if (cfg) {
 
   window.fetch = async function (input, init = {}) {
     const url = typeof input === 'string' ? input : input?.url;
-
     const isLeadCall = url && url.includes(cfg.endpoint) && (init.method || 'GET').toUpperCase() === 'POST';
-
     if (!isLeadCall) return _fetch(input, init);
 
     let body = {};
-    try {
-      body = JSON.parse(init.body || '{}');
-    } catch (_) {}
-
-    if (body.phoneNumber && !body.otpToken) {
-      const token = await runOtpFlow(body.phoneNumber);
-      if (token) body.otpToken = token;
-    }
+    try { body = JSON.parse(init.body || '{}'); } catch (_) {}
 
     const headers = new Headers(init.headers || {});
     headers.set('Authorization', `Bearer ${cfg.authToken}`);
     headers.set('Content-Type', 'application/json');
 
-    return _fetch(input, {
-      ...init,
-      headers,
-      body: JSON.stringify(body),
-    });
+    // 1. Save lead IMMEDIATELY — dashboard shows it right away
+    const leadSavePromise = _fetch(input, { ...init, headers, body: JSON.stringify(body) });
+
+    // 2. Show OTP modal independently (lead is saving in background)
+    let otpToken = null;
+    if (body.phoneNumber) {
+      otpToken = await runOtpFlow(body.phoneNumber);
+    }
+
+    // 3. Await lead save
+    const response = await leadSavePromise;
+
+    // 4. If OTP verified, silently update phoneVerified on user doc
+    if (otpToken) {
+      _fetch(cfg.endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...body, otpToken }),
+      }).catch(() => {});
+    }
+
+    return response;
   };
 }
